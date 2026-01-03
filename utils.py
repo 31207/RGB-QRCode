@@ -13,17 +13,11 @@ def decode_pics(pics_path: str, output_file: str):
     :param output_file: 解密后输出的文件路径
     :type output_file: str
     '''
-    files = os.listdir(pics_path)
-    files_tmp = []
-    for i in files:
-        parts = i.split(".")
-        files_tmp.append({"name": parts[0], "ext": parts[1]})
-    files_tmp.sort(key=lambda x: int(x["name"]))
-    files = [f"{file['name']}.{file['ext']}" for file in files_tmp]
+    file_count = len(os.listdir(pics_path))
     result_file = open(output_file, "wb+")
     file_sizes = []
-    for file in files:
-        image = Image.open(pics_path + file)
+    for file in range(file_count):
+        image = Image.open(pics_path + str(file) + ".png")
         decoder = Decoder()
         result = decoder.decode(image)
         file_sizes.append(len(result))
@@ -45,7 +39,7 @@ def encode_file(pics_path: str, input_file: str, read_size=1000):
 
     file = open(input_file, "rb")
 
-    index = 1
+    index = 0
     data = file.read(read_size)
     while data:
         encoder = Encoder()

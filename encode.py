@@ -13,7 +13,7 @@ class Encoder:
     Initialised by defining the error correction level.
     """
 
-    def __init__(self, error_correction="MED"):
+    def __init__(self, error_correction="LOW"):
         self.error_correction = ErrorCorrection[error_correction]
 
     def encode(self, data: bytearray) -> Image:
@@ -22,7 +22,7 @@ class Encoder:
         Returns a PIL Image which can be saved with `.save("filename.png")`.
         """
 
-        codes = []
+        code_pics = []
         section_length = math.ceil(len(data) / 3)
         split_data = [
             data[0: section_length],
@@ -36,19 +36,37 @@ class Encoder:
             ErrorCorrection.HIGH: constants.ERROR_CORRECT_Q,
             ErrorCorrection.MAX: constants.ERROR_CORRECT_H
         }
+        qr_codes = []
+        versions = []
 
-        target_version = -1
-        for i in range(3):
+        for part in split_data:
             qr_code = QRCode(
-                version=target_version if i > 0 else None,
                 error_correction=error_correction_map[self.error_correction]
             )
-            qr_code.add_data(split_data[i], optimize=0)
+            qr_code.add_data(part, optimize=0)
             qr_code.make()
-            if i == 0:
-                target_version = qr_code.version
-            qr_code_image = qr_code.make_image(
-                fill_color="black", back_color="white")
-            codes.append(qr_code_image.convert("L"))
+            qr_codes.append(qr_code)
+            versions.append(qr_code.version)
+        if all(v == versions[0] for v in versions):
+            for qr_code in qr_codes:
+                qr_code_image = qr_code.make_image(
+                    fill_color="black", back_color="white")
+                code_pics.append(qr_code_image.convert("L"))
+        else:
+            max_version = max(versions)
+            for i, qr_code in enumerate(qr_codes):
+                if qr_code.version != max_version:
+                    qr_code = QRCode(
+                        version=max_version,
+                        error_correction=error_correction_map[self.error_correction]
+                    )
+                    qr_code.add_data(split_data[i], optimize=0)
+                    qr_code.make()
+                qr_code_image = qr_code.make_image(
+                    fill_color="black", back_color="white")
+                code_pics.append(qr_code_image.convert("L"))
+        
+        
 
-        return Image.merge("RGB", codes)
+        return Image.merge("RGB", code_pics)
+
